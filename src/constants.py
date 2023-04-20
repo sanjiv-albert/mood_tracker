@@ -1,0 +1,2 @@
+MOTION_CONTEXTS = {'SEDENTARY': 0}
+SANJI_SOURCE_NAME = 'Sanji’s Apple Watch'
