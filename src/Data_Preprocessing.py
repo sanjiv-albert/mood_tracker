@@ -65,11 +65,11 @@ def create_second_by_second_data(data, mood_times):
     # and we don't want to fill in that data
 
     # first fill in the HR data
-    i = 0
-    while i < len(hr_second_by_second):
+    i, cursor = 0, 0
+    while i < len(hr_second_by_second) or cursor >= len(hr_second_by_second) - 1:
         current = hr_second_by_second[i]
         prev = hr_second_by_second[i - 1] if i > 0 else current
-        next = hr_second_by_second[i + 1] if i < len(hr_second_by_second) else current
+        next = hr_second_by_second[i + 1] if i + 1 < len(hr_second_by_second) else current
 
         # check if next data point is more than 1 minute away or if we are at the end of the data
         if next[0] - current[0] > 60 or i == len(hr_second_by_second) - 1:
@@ -97,7 +97,7 @@ def create_second_by_second_data(data, mood_times):
             sub_max = max(sub[:, 1])
             sub_min = min(sub[:, 1])
 
-            add_index = hr_second_by_second.index(two_min_subset[0])+1
+            add_index = hr_second_by_second.index(two_min_subset[0]) + 1
             # Now we fill in the missing data
             for adder in range(two_min_subset[0][0] + 1, two_min_subset[-1][0]):
                 if adder not in sub[:, 0]:
@@ -108,14 +108,49 @@ def create_second_by_second_data(data, mood_times):
                     hr_second_by_second.insert(i + add_index, [adder, interpolated_value])
                     add_index += 1
 
+            hr_second_by_second.sort(key=lambda x: x[0])
             sub_end = two_min_subset[-1][0]
-
+            i += 1
             # move i to the end of the subset + 1
             while i < len(hr_second_by_second) and hr_second_by_second[i][0] <= sub_end:
                 i += 1
 
     # now fill in the O2 data
-    i = 0
+    hr_second_by_second.sort(key=lambda x: x[0])
+    original_o2 = o2_second_by_second.copy()
+    for (i, _) in hr_second_by_second:
+        if i not in [x[0] for x in o2_second_by_second]:
+            # if blood oxygen measurement is within 5 min of i, then use that measurement, otherwise use avg of previous and next
+
+            # find the closest measurement before i
+            closest_before = None
+            for j in range(len(original_o2)):
+                if original_o2[j][0] < i:
+                    closest_before = original_o2[j]
+                else:
+                    break
+            # find the closest measurement after i
+            closest_after = None
+            for j in range(len(original_o2) - 1, -1, -1):
+                if original_o2[j][0] > i:
+                    closest_after = original_o2[j]
+                else:
+                    break
+            # if both are found, then use polynomial interpolation to fill in the missing data
+            if closest_before is not None and closest_after is not None:
+                x = np.array([closest_before[0], closest_after[0]])
+                y = np.array([closest_before[1], closest_after[1]])
+                z = np.polyfit(x, y, 1)
+                f = np.poly1d(z)
+                o2_second_by_second.append([i, f(i)])
+            # if only one is found, then use that measurement
+            elif closest_before is not None:
+                o2_second_by_second.append([i, closest_before[1]])
+            elif closest_after is not None:
+                o2_second_by_second.append([i, closest_after[1]])
+            # if neither are found, then use 99.5 as the measurement
+            else:
+                o2_second_by_second.append([i, 99.5])
 
     # Now recombine the HR and O2 data
     # Format of the data is [[mood, time, hr, o2], ...]
@@ -140,8 +175,8 @@ def create_second_by_second_data(data, mood_times):
                 o2 = o2_second_by_second[-1][1]
         mood = None
         for j in range(len(mood_times)):
-            if mood_times[j][0] <= time <= mood_times[j][1]:
-                mood = j
+            if mood_times[j][1] <= time <= mood_times[j][2]:
+                mood = mood_times[j][0]
                 break
         if mood is None:
             if 0 <= i < len(hr_second_by_second):
@@ -149,8 +184,8 @@ def create_second_by_second_data(data, mood_times):
             else:
                 append = False
         if append:
-            combined_data.append([mood, time, hr, o2])
-
+            combined_data.append([str(mood), int(time), float(hr), float(o2)])
+    combined_data.sort(key=lambda x: x[1])
     return combined_data
 
 
@@ -213,6 +248,8 @@ def get_hr_10s_entropy(time, np_full_data):
 def get_hr_slope(time, np_full_data):
     # 5 seconds before and 5 seconds after
     subset = np_full_data[np.where((np_full_data[:, 1] >= time - 5) & (np_full_data[:, 1] <= time + 5))]
+    if len(subset) < 2:
+        return 0
     inst_slope = np.polyfit(subset[:, 1], subset[:, 2], 1)
     return inst_slope[0]
 
@@ -276,6 +313,8 @@ def get_o2_10s_entropy(time, np_full_data):
 def get_o2_slope(time, np_full_data):
     # 5 seconds before and 5 seconds after
     subset = np_full_data[np.where((np_full_data[:, 1] >= time - 5) & (np_full_data[:, 1] <= time + 5))]
+    if len(subset) < 2:
+        return 0
     inst_slope = np.polyfit(subset[:, 1], subset[:, 3], 1)
     return inst_slope[0]
 
@@ -306,14 +345,14 @@ class DataCreator:
 
         full_data = create_second_by_second_data(self.data, self.mood_times)
         # [ [mood, time, hr, o2], ...]
-        np_full_data = np.array(full_data)
+        np_full_data = np.array([[0, t, h, o] for m, t, h, o in full_data])
         # Now we need to create the input and output arrays
         in_arr = []
         out_arr = []
 
         # We will go through the data and create the input and output arrays, motion context will be
         # 0 for now, can be added later
-        for i in range(len(full_data)):
+        for i in range(len(np_full_data)):
             time = np_full_data[i][1]
             mc = 0
 
@@ -347,7 +386,7 @@ class DataCreator:
             # we will use the following format:
             # [happiness, sadness, anger, fear, disgust, neutral] floats 0 to 255
 
-            mood = np_full_data[i][0]
+            mood = full_data[i][0]
             if mood == 'h':
                 out_arr.append([255, 0, 0, 0, 0, 0])
             elif mood == 's':

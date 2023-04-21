@@ -1,4 +1,5 @@
 import datetime
+import os
 import pickle
 
 import analysis
@@ -66,8 +67,10 @@ def get_mood_data():
     moods = [
         (
             x[0],
-            datetime.datetime.strptime(x[1], '%Y-%m-%d %H:%M').replace(tzinfo=datetime.timezone(datetime.timedelta(hours=-4))),
-            datetime.datetime.strptime(x[2], '%Y-%m-%d %H:%M').replace(tzinfo=datetime.timezone(datetime.timedelta(hours=-4)))
+            datetime.datetime.strptime(x[1], '%Y-%m-%d %H:%M').replace(
+                tzinfo=datetime.timezone(datetime.timedelta(hours=-4))),
+            datetime.datetime.strptime(x[2], '%Y-%m-%d %H:%M').replace(
+                tzinfo=datetime.timezone(datetime.timedelta(hours=-4)))
         )
         for x in moods
     ]
@@ -94,10 +97,12 @@ def data_prep():
 
     tensor_ready_data = data_creator.get_tensor_ready_data()
     # save tensor_ready_data to file
-    with open('data/tensor_ready_data.pkl', 'wb') as f:
+    fn = f'..{os.sep}data{os.sep}tensor_ready_data.pkl'
+    with open(fn, 'wb') as f:
         pickle.dump(tensor_ready_data, f)
 
     return tensor_ready_data
+
 
 def does_data_exist():
     return True
