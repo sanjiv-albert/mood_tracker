@@ -1,6 +1,7 @@
 import xml.etree.ElementTree as ET
 from datetime import datetime
 
+
 class HeartRate:
     def __init__(self, sourceName, sourceVersion, device, unit, startDate, endDate, value, motionContext):
         self.sourceName = sourceName
@@ -15,9 +16,11 @@ class HeartRate:
     def __str__(self):
         return f"Source Name: {self.sourceName}\nStart Date: {self.startDate}\nEnd Date: {self.endDate}\nValue: {self.value}\nMotion Context: {self.motionContext}"
 
+class BloodOxygen:
+    pass
 
 def extract_heart_rate_data(filename):
-    tree = ET.parse("src/"+filename)
+    tree = ET.parse("src/" + filename)
     root = tree.getroot()
     heart_rate_data = []
     for record in root.iter('Record'):
@@ -31,7 +34,8 @@ def extract_heart_rate_data(filename):
             value = float(record.get('value'))
             metadata = record.find('MetadataEntry')
             motionContext = metadata.get('value') if metadata is not None else None
-            heart_rate_obj = HeartRate(sourceName, sourceVersion, device, unit, startDate, endDate, value, motionContext)
+            heart_rate_obj = HeartRate(sourceName, sourceVersion, device, unit, startDate, endDate, value,
+                                       motionContext)
             heart_rate_data.append(heart_rate_obj)
     heart_rate_data.sort(key=lambda x: x.endDate, reverse=True)
     return heart_rate_data
