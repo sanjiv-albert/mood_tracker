@@ -3,9 +3,10 @@ import os
 import pickle
 
 import analysis
+import pytorch_gpu
 from Data_Preprocessing import DataCreator
 from XML_extraction import HeartRate, BloodOxygen
-
+from pytorch_gpu import Model
 
 def test_main():
     print('Test getting raw data:')
@@ -125,5 +126,23 @@ if __name__ == '__main__':
 
     print("Do you want to run the NN? (y/n)")
     if input().lower() == 'y':
-        # run NN
-        pass
+        nn = Model()
+        nn_dataL_train, nn_dataL_test = pytorch_gpu.get_tensor_data()
+    else:
+        exit()
+
+    print("Do you want to load the prev NN? (y/n)")
+    if input().lower() == 'y':
+        nn.load_weights()
+
+    print("Do you want to train the NN? (y/n)")
+    if input().lower() == 'y':
+        pytorch_gpu.train(nn, nn_dataL_train, nn_dataL_test)
+
+    print("Do you want to save the NN? (y/n)")
+    if input().lower() == 'y':
+        nn.save_weights()
+
+    print("Do you want to test the NN? (y/n)")
+    if input().lower() == 'y':
+        pytorch_gpu.test(nn, nn_dataL_test)
