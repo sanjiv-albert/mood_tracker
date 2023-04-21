@@ -74,7 +74,7 @@ def get_tensor_data():
         test_in.append(inputs.pop(rand))
         test_out.append(outputs.pop(rand))
 
-    batch_size = 64
+    batch_size = 96
     train_data = Data(inputs, outputs)
     test_data = Data(test_in, test_out)
     train_loader = DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True)
@@ -89,7 +89,7 @@ def train(model, train_loader, test_loader):
     learning_rate = 0.1
     loss_fn = nn.MSELoss()
     optimizer = torch.optim.ASGD(model.parameters(), lr=learning_rate)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.5)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.75)
     num_epochs = 100000
     for epoch in range(num_epochs):
         for X, y in train_loader:
