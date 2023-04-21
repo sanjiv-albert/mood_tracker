@@ -101,30 +101,29 @@ def data_prep():
     with open(fn, 'wb') as f:
         pickle.dump(tensor_ready_data, f)
 
-    return tensor_ready_data
+    return tensor_ready_data[0]
 
 
 def does_data_exist():
-    return True
+    return bool(os.path.exists(f'..{os.sep}data{os.sep}tensor_ready_data.pkl'))
 
 
 if __name__ == '__main__':
-    # print("Welcome to Sanji's Capstone Project!")
-    # print("Do you want to run an XML and data analysis test? (y/n)")
-    # if input().lower() == 'y':
-    #     test_main()
-    # print("Test Complete! \n ------------------ \n \n")
-    #
-    # print("Do you want to run the data preparation? (y/n)")
-    # if input().lower() == 'y':
-    #     data_prep()
-    #
-    # if does_data_exist():
-    #     print("No data to use for NN. Exiting...")
-    #     exit()
-    #
-    # print("Do you want to run the NN? (y/n)")
-    # if input().lower() == 'y':
-    #     # run NN
-    #     pass
-    trd = data_prep()
+    print("Welcome to Sanji's Capstone Project!")
+    print("Do you want to run an XML and data analysis test? (y/n)")
+    if input().lower() == 'y':
+        test_main()
+    print("Test Complete! \n ------------------ \n \n")
+
+    print("Do you want to run the data preparation? (y/n)")
+    if input().lower() == 'y':
+        data_prep()
+
+    if not does_data_exist():
+        print("No data to use for NN. Exiting...")
+        exit()
+
+    print("Do you want to run the NN? (y/n)")
+    if input().lower() == 'y':
+        # run NN
+        pass
