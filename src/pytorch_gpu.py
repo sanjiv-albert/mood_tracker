@@ -27,7 +27,7 @@ class Data(Dataset):
 
 class Model(nn.Module):
 
-    def __init__(self, input_size=22, hidden_size_1=35, hidden_size_2=18, output_size=6):
+    def __init__(self, input_size=22, hidden_size_1=40, hidden_size_2=18, output_size=6):
         super(Model, self).__init__()
         self.fc1 = nn.Linear(input_size, hidden_size_1)
         nn.init.kaiming_uniform_(self.fc1.weight, nonlinearity='relu')
@@ -74,7 +74,7 @@ def get_tensor_data():
         test_in.append(inputs.pop(rand))
         test_out.append(outputs.pop(rand))
 
-    batch_size = 96
+    batch_size = 32
     train_data = Data(inputs, outputs)
     test_data = Data(test_in, test_out)
     train_loader = DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True)
@@ -84,12 +84,13 @@ def get_tensor_data():
 
 def train(model, train_loader, test_loader):
     model.to(dml)
+    lowest_loss = 1
     # make sure model is on GPU dml
     print(next(model.parameters()).device)
     learning_rate = 0.1
     loss_fn = nn.MSELoss()
     optimizer = torch.optim.ASGD(model.parameters(), lr=learning_rate)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.75)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.5)
     num_epochs = 100000
     for epoch in range(num_epochs):
         for X, y in train_loader:
@@ -102,7 +103,9 @@ def train(model, train_loader, test_loader):
 
         if (epoch + 1) % 100 == 0:
             print(f'Epoch [{epoch + 1}/{num_epochs}], Loss: {loss.item():.4f}')
-            model.save_weights()
+            if loss.item() < lowest_loss:
+                lowest_loss = loss.item()
+                model.save_weights()
 
         scheduler.step()
 
