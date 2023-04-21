@@ -53,8 +53,8 @@ train_loader = DataLoader(dataset=train_data, batch_size=batch_size, shuffle=Tru
 test_loader = DataLoader(dataset=test_data, batch_size=batch_size, shuffle=False)
 
 input_size = 22
-hidden_size_1 = 30
-hidden_size_2 = 15
+hidden_size_1 = 31
+hidden_size_2 = 16
 output_size = 6
 
 
@@ -74,6 +74,16 @@ class Model(nn.Module):
         x = torch.sigmoid(self.fc3(x))
         return x
 
+    def save_weights(self):
+        torch.save(self.state_dict(), f'..{os.sep}data{os.sep}model_weights.pt')
+
+    def predict(self, X):
+        X = torch.tensor(X, dtype=torch.float, device=dml)
+        return self(X)
+
+    def load_weights(self):
+        self.load_state_dict(torch.load(f'..{os.sep}data{os.sep}model_weights.pt'))
+
 
 model = Model().to(dml)
 print(model)
@@ -81,11 +91,12 @@ print(model)
 # make sure model is on GPU dml
 print(next(model.parameters()).device)
 
-learning_rate = 0.01
+learning_rate = 0.1
 loss_fn = nn.MSELoss()
 optimizer = torch.optim.ASGD(model.parameters(), lr=learning_rate)
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.5)
 
-num_epochs = 1000
+num_epochs = 10000
 for epoch in range(num_epochs):
     for X, y in train_loader:
         optimizer.zero_grad()
@@ -97,3 +108,4 @@ for epoch in range(num_epochs):
 
     if (epoch + 1) % 100 == 0:
         print(f'Epoch [{epoch + 1}/{num_epochs}], Loss: {loss.item():.4f}')
+        model.save_weights()
