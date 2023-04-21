@@ -1,13 +1,22 @@
-import XML_extraction
-from constants import *
-import numpy as np
+import os
 import statistics as stats
 
-FILENAME = 'export.xml'
+import numpy as np
+
+import XML_extraction
+from constants import *
+
+FILENAME = f'..{os.sep}data{os.sep}apple_health_export{os.sep}export.xml'
 
 
 def get_raw_data():
-    return XML_extraction.extract_heart_rate_data(FILENAME)
+    hr = XML_extraction.extract_heart_rate_data(FILENAME)
+    bo2 = XML_extraction.extract_blood_O2_data(FILENAME)
+
+    # Combine then sort by date with most recent first
+    data = hr + bo2
+    data.sort(key=lambda x: x.endDate, reverse=True)
+    return data
 
 
 def filter_data_by_source_name(data, source_name=SANJI_SOURCE_NAME):
